@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script>
+    // 三种实现沙箱：1、快照 2、单例 proxy 3、多例 proxy
+    // 沙箱 防止应用加载的时候，对 window 造成污染
+    // a -> 更改了 window 属性
+    // b -> 更改了 window 属性
+    // 先 保留 a 应用的属性 失活的时候把修改的属性存起来，激活的时候还原回来
+    // 快照 浪费内存，因为要给 window 拍照
+
+    // class SnapshotSandBox {
+    //   constructor() {
+    //     // 修改的属性
+    //     this.editProps = {}
+    //     // 复制一份
+    //     this.copyProps = {}
+    //   }
+
+    //   // 激活的时候
+    //   active() {
+    //     this.copyProps = {}
+    //     Object.keys(window).forEach((props) => {
+    //       this.copyProps[props] = window[props]
+    //     })
+
+    //     Object.keys(this.editProps).forEach((props) => {
+    //       window[props] = this.editProps[props]
+    //     })
+    //   }
+
+    //   // 失活的时候
+    //   inactivate() {
+    //     // 失活的时候把修改的保存起来
+    //     this.editProps = {}
+    //     Object.keys(window).forEach((props) => {
+    //       if (window[props] !== this.copyProps[props]) {
+    //         this.editProps[props] = window[props]
+    //         window[props] = this.copyProps[props]
+    //       }
+    //     })
+    //   }
+    // }
+    // const s = new SnapshotSandBox()
+    // s.active()
+    // window.a = 100
+    // window.b = 200
+    // s.inactivate()
+    // console.log(window.a, window.b);
+    // s.active()
+    // console.log(window.a, window.b);
+
+    // 快照、基于 proxy 只能单例的情况下使用，同时加载两个应用就会混乱,风险
+
+    // 多例实现，各自都产生一个代理对象，访问的时候就访问自己的代理对象
+    class ProxySandbox {
+      constructor() {
+        this.running = false
+
+        const obj = {}
+        const proxy = new Proxy(obj, {
+          get: (target, key) => {
+            const val = key in target ? target[key] : window[key]
+            return val
+          },
+          set: (target, key, val) => {
+            if (this.running) {
+              target[key] = val
+            }
+          }
+        })
+        this.proxy = proxy
+      }
+      // 激活的时候
+      active() {
+        this.running = true
+      }
+      // 失活的时候
+      inactivate() {
+        this.running = false
+      }
+    }
+    // 单例1, 各自都弄个代理对象, 相当于自己的 window
+    const proxy1 = new ProxySandbox()
+    // 单例2, 各自都弄个代理对象, 相当于自己的 window
+    const proxy2 = new ProxySandbox()
+    proxy1.active()
+    proxy2.active()
+    proxy1.proxy.a = 100
+    proxy2.proxy.a = 200
+    console.log(proxy1.proxy.a) // 100
+    console.log(proxy2.proxy.a) // 200
+
+    proxy1.inactivate()
+    proxy2.inactivate()
+    proxy1.proxy.a = 10000
+    proxy2.proxy.a = 20000
+    console.log(proxy1.proxy.a) // 100
+    console.log(proxy2.proxy.a) // 200
+  </script>
+</body>
+
+</html>
