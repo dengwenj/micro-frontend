@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="out">朴睦</div>
+  <div id="container"></div>
+  <script>
+    const template = `
+      <div>
+        <div id="inner">dwj</div>
+        <style>div{color: red}</style>   
+      </div>
+    `
+    const container = document.querySelector('#container')
+    container.innerHTML = template
+
+    const content = container.firstElementChild
+    // 创建一个 shadow root
+    const shadow = container.attachShadow({ mode: 'open' })
+    // 将其添加到 shadow root 上
+    shadow.appendChild(content)
+
+    shadow.querySelector('#inner').addEventListener('click', () => {
+      console.log("打印");
+    })
+  </script>
+</body>
+
+</html>
