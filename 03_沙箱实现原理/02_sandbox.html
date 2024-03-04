@@ -103,7 +103,10 @@
     proxy1.proxy.a = 10000
     proxy2.proxy.a = 20000
     console.log(proxy1.proxy.a) // 100
-    console.log(proxy2.proxy.a) // 200
+    console.log(proxy2.proxy.a); // 200
+
+    (function (window) { })(proxy1.proxy);
+    (function (window) { })(proxy2.proxy)
   </script>
 </body>
 
