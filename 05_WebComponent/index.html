@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <!-- 
+    WebComponents
+    1、custom elements: 允许用户自定义一个元素 随便起名字
+    2、shadowDOM 样式隔离是 WebComponents 一部分
+    3、可以支持组件的特点 模版、插槽、生命周期、属性都是组件的特点
+   -->
+  <my-button type="primary">webcomponents</my-button>
+  <!-- template 是浏览器内置的，默认不会显示出来 -->
+  <template id="btn_tpl">
+    <button class='my-button'>
+      <slot>插槽</slot>
+    </button>
+  </template>
+
+  <script>
+    // micro-app 核心是将应用变成自定义元素，插入到基座中
+    class MyButton extends HTMLElement {
+      connectedCallback() {
+        console.log("组件加载完毕执行")
+
+        const btn_tpl = document.getElementById('btn_tpl') // 子应用 获取到 html 元素
+        const clone = btn_tpl.content.cloneNode(true)
+        // 创建 shadowRoot
+        this.shadow = this.attachShadow({ mode: "closed" })
+
+        const style = document.createElement('style')
+        const props = this.getAttribute('type')
+        this.types = {
+          primary: 'blue',
+          default: '#ccc'
+        }
+        style.innerHTML = `
+          .my-button {
+            background: ${this.types[props]};
+            color: #fff;
+            padding: 10px;
+          }
+        `
+
+        // 添加 dom 到 shadowRoot
+        this.shadow.appendChild(clone)
+        // 添加样式到 shadowRoot
+        this.shadow.appendChild(style)
+
+        // this.setAttribute('type', 'defalut')
+        // 派发事件
+        this.dispatchEvent(new CustomEvent('customMounted'))
+      }
+
+      static observedAttributes = ["type"]
+
+      // 当自定义元素的一个属性被增加、移除或更改时被调用
+      attributeChangedCallback(name, oldVal, newVal) {
+        console.log(name, oldVal, newVal);
+        if (this.shadow) {
+          const btn = this.shadow.querySelector('.my-button')
+          btn.style.backgroundColor = this.types[newVal]
+          this.dispatchEvent(new CustomEvent('customUpdated'))
+        }
+      }
+      // 当自定义元素与文档 DOM 断开连接时被调用
+      disconnectedCallback() {
+        console.log("WebComponents 被卸载了");
+      }
+      // 当自定义元素被移动到新文档时被调用
+      adoptedCallback() {
+
+      }
+    }
+
+    const myButtonEl = document.querySelector('my-button')
+    // 定义事件
+    myButtonEl.addEventListener('customMounted', (e) => {
+      console.log(e);
+    })
+    myButtonEl.addEventListener('customUpdated', (e) => {
+      console.log(e, 'customUpdated');
+    })
+
+    // 创建 webcomponents
+    customElements.define('my-button', MyButton)
+
+    setTimeout(() => {
+      myButtonEl.setAttribute('type', 'default')
+    }, 1000)
+
+    setTimeout(() => {
+      // myButtonEl.parentNode.removeChild(myButtonEl)
+    }, 2000);
+  </script>
+</body>
+
+</html>
