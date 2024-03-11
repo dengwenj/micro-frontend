@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <!-- 
+    1、以前我们的 js 都是放到沙箱（自己实现的）中跑的 -> 无界用的 iframe
+    2、我们的 css 隔离（scopedCss） -> 无界用的 webComponent（shadowRoot）
+    3、渲染采用 webComponent（拉取 html 模版，生成自定义组件插入到指定的 dom 中）
+   -->
+
+  <div>主应用中的 div</div>
+
+  <script>
+    const subTemplate = `
+      <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <title>Document</title>
+        </head>
+          <div id="sub">子应用的 div</div>
+          <style>
+            div {
+              background: red;
+            }
+          </style>
+        </html>
+      `
+    const subScript = `
+      window.pu = '朴睦'
+      console.log(window.pu)
+      console.log(document.querySelector('#sub'))
+    `
+
+    function createIframe() {
+      const iframe = document.createElement('iframe')
+      document.body.appendChild(iframe)
+      return iframe
+    }
+
+    function createSandbox() {
+      const sandbox = {
+        iframe: createIframe(),
+        shadow: null
+      }
+
+      return sandbox
+    }
+
+    function injectHTMLCSS(sandbox) {
+      const w = document.createElement('div')
+      w.innerHTML = subTemplate
+      sandbox.shadow.appendChild(w)
+    }
+
+    function runScript(sandbox) {
+      const iframeWindow = sandbox.iframe.contentWindow
+
+      // 创建script标签
+      const scriptEle = iframeWindow.document.createElement('script')
+
+      const headEle = iframeWindow.document.querySelector('head')
+
+      // 希望在执行脚本之前，有些方法用的是父应用的
+      // document.querySelector 用的不是 iframe 中的，应该要用 shadow 中的
+      Object.defineProperty(iframeWindow.Document.prototype, 'querySelector', {
+        get() {
+          return new Proxy(sandbox.shadow.querySelector, {
+            apply(target, thisArg, argArray) {
+              return thisArg.querySelector.apply(sandbox.shadow, argArray)
+            }
+          })
+        }
+      })
+
+      scriptEle.innerHTML = subScript
+      headEle.appendChild(scriptEle)
+    }
+
+    function createCustomCompoent() {
+      class WuJieApp extends HTMLElement {
+        connectedCallback() {
+          // 1、创建 js 沙箱
+          const sandbox = createSandbox()
+          // 2、创建 shadowDOM
+          sandbox.shadow = this.attachShadow({ mode: "open" })
+          // 3、把 html、css 放入 shadowRoot 中
+          injectHTMLCSS(sandbox)
+          // 4、把 js 放入 iframe 中
+          runScript(sandbox)
+        }
+      }
+
+      // 创建自定义组件
+      window.customElements.define('wujie-app', WuJieApp)
+      document.body.appendChild(document.createElement('wujie-app'))
+    }
+    createCustomCompoent()
+  </script>
+</body>
+
+</html>
