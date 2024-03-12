@@ -12,6 +12,9 @@
     1、以前我们的 js 都是放到沙箱（自己实现的）中跑的 -> 无界用的 iframe
     2、我们的 css 隔离（scopedCss） -> 无界用的 webComponent（shadowRoot）
     3、渲染采用 webComponent（拉取 html 模版，生成自定义组件插入到指定的 dom 中）
+
+    主要：webComponent和iframe 通信的问题(重写一些方法)
+    获取模版用 fetch请求 fetch('http://localhost:8080').then((res) => res.text()).then((html) => {})
    -->
 
   <div>主应用中的 div</div>
